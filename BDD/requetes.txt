@@ -1,0 +1,195 @@
+-- Création d'une vue Listing des pizzerias
+CREATE OR REPLACE VIEW liste_pizzerias
+AS SELECT pizzeria.id_pizzeria AS 'Identifiant de la pizzeria',
+pizzeria.nom AS 'Nom de la Pizzeria',
+adresse.numero_de_rue AS 'Numéro de rue',
+adresse.complement_de_rue AS 'Complément de rue',
+adresse.nom_de_rue AS 'Nom de rue',
+adresse.code_postal AS 'Code Postal',
+adresse.ville AS 'Ville',
+pizzeria.numero_telephone AS 'Numéro de téléphone',
+pizzeria.email AS 'Mail'
+FROM oc_pizza.pizzeria
+INNER JOIN adresse ON adresse.id_adresse = pizzeria.adresse_id_adresse;
+
+-- Création d'une vue liste des clients
+CREATE OR REPLACE VIEW liste_clients
+AS SELECT utilisateur.id_utilisateur AS 'Numéro de client',
+utilisateur.civilite AS 'Civilité',
+utilisateur.nom AS 'Nom',
+utilisateur.prenom AS 'Prénom',
+utilisateur.numero_telephone 'Numéro de téléphone',
+utilisateur.email AS 'Mail',
+adresse.numero_de_rue AS 'Numéro de rue',
+adresse.nom_de_rue AS 'Nom de rue',
+adresse.complement_de_rue AS 'Complément de rue',
+adresse.immeuble AS 'Nom immeuble',
+adresse.etage AS 'Etage',
+adresse.appartement_numero AS 'Numéro appartement',
+adresse.commentaire AS 'Commentaire',
+adresse.code_postal AS 'Code Postal',
+adresse.ville AS 'Ville',
+pizzeria.nom AS 'Pizzeria du client'
+FROM oc_pizza.utilisateur
+INNER JOIN adresse ON adresse.id_adresse = utilisateur.adresse_id_adresse
+INNER JOIN pizzeria ON pizzeria.id_pizzeria = utilisateur.pizzeria_id_pizzeria
+WHERE role = 'client';
+
+-- Création d'une vue liste equipe OC Pizza
+CREATE OR REPLACE VIEW liste_equipe_ocpizza
+AS SELECT utilisateur.civilite AS 'Civilité',
+utilisateur.nom AS 'Nom',
+utilisateur.prenom AS 'Prénom',
+utilisateur.numero_telephone 'Numéro de téléphone',
+utilisateur.email AS 'Mail',
+utilisateur.role AS 'Poste',
+pizzeria.nom AS 'Pizzeria de rattachement'
+FROM oc_pizza.utilisateur
+INNER JOIN pizzeria ON pizzeria.id_pizzeria = utilisateur.pizzeria_id_pizzeria
+WHERE ( NOT role = 'client');
+
+-- Création d'une vue liste des commandes
+CREATE OR REPLACE VIEW liste_commandes AS
+SELECT pizzeria.id_pizzeria AS 'Numéro de la pizzeria',
+pizzeria.nom AS 'Pizzeria du client',
+utilisateur.id_utilisateur AS 'Numéro de client',
+utilisateur.civilite AS 'Civilité',
+utilisateur.nom AS 'Nom',
+utilisateur.prenom AS 'Prénom',
+utilisateur.numero_telephone 'Numéro de téléphone',
+commande.id_commande AS 'Numéro de commande',
+commande.date AS 'Date de commande',
+commande.heure AS 'Heure de la commande',
+commande.montant_ttc AS 'Montant en € TTC',
+commande.type_de_commande AS 'Type de commande',
+commande.methode_de_paiement AS 'Méthode de paiement',
+commande.paiement_ok AS 'Paiement déjà validé',
+commande.statut_commande AS 'Statut de la commande'
+FROM oc_pizza.commande
+INNER JOIN utilisateur ON utilisateur.id_utilisateur = commande.utilisateur_id_utilisateur
+INNER JOIN pizzeria ON pizzeria.id_pizzeria = utilisateur.pizzeria_id_pizzeria
+WHERE role = 'client';
+
+-- Création d'une vue détail des commandes
+CREATE OR REPLACE VIEW detail_commandes
+AS SELECT utilisateur.nom AS 'Nom',
+utilisateur.prenom AS 'Prénom',
+commande.date AS 'Date',
+commande.heure AS 'Heure',
+ligne_de_commande.commande_id_commande AS 'Numéro de commande',
+ligne_de_commande.id_ligne_de_commande AS 'Ligne',
+categorie.categorie AS 'Catégorie',
+produit.nom AS 'Nom du produit',
+produit.prix_vente_ttc AS 'Prix Unitaire € TTC',
+ligne_de_commande.quantite AS 'Quantité',
+ligne_de_commande.prix_ligne_ttc AS 'Sous Total € TTC'
+FROM oc_pizza.ligne_de_commande
+INNER JOIN produit ON produit.id_produit = ligne_de_commande.produit_id_produit
+JOIN categorie ON categorie.id_categorie = produit.categorie_id_categorie
+JOIN commande ON commande.id_commande = ligne_de_commande.commande_id_commande
+JOIN utilisateur ON utilisateur.id_utilisateur = commande.utilisateur_id_utilisateur;
+
+-- Création d'une vue Menu
+CREATE OR REPLACE VIEW menu_ocpizza
+AS SELECT DISTINCT produit.nom AS 'Nom du produit',
+produit.composition AS 'Composition',
+produit.prix_vente_ttc AS 'Prix du produit € TTC',
+categorie.categorie AS 'Catégorie'
+FROM oc_pizza.produit
+JOIN categorie ON categorie.id_categorie = produit.categorie_id_categorie
+ORDER BY categorie, nom ASC;
+
+-- Création d'une vue aide_memoire
+CREATE OR REPLACE VIEW aide_memoire
+AS SELECT DISTINCT produit.nom AS 'Nom du produit',
+utilisation_composant.quantite_preparation AS 'quantité nécessaire',
+utilisation_composant.unite_mesure AS 'Unité de mesure',
+composant.nom AS 'Nom',
+recette.recette AS 'Recette'
+FROM oc_pizza.produit
+JOIN recette ON recette.produit_id_produit = produit.id_produit
+JOIN utilisation_composant ON utilisation_composant.recette_produit_id_recette_produit = recette.produit_id_produit
+JOIN composant ON composant.id_composant = utilisation_composant.composant_id_composant;
+
+-- Création d'une vue stock global
+CREATE OR REPLACE VIEW stock_global
+AS SELECT stock.pizzeria_id_pizzeria AS 'Numéro Pizzeria',
+pizzeria.nom AS 'Nom de la pizzeria',
+produit.nom AS 'Nom du produit',
+composant.nom AS 'Nom du composant',
+stock.quantite AS 'Quantité',
+stock.conditionnement AS 'Conditionnement'
+FROM oc_pizza.stock
+JOIN pizzeria ON pizzeria.id_pizzeria = stock.pizzeria_id_pizzeria
+LEFT OUTER JOIN composant ON composant.id_composant = stock.composant_id_composant
+LEFT OUTER JOIN produit ON produit.id_produit = stock.produit_id_produit;
+
+-- Création d'une vue stock produit
+CREATE OR REPLACE VIEW stock_produits
+AS SELECT stock.pizzeria_id_pizzeria AS 'Numéro Pizzeria',
+pizzeria.nom AS 'Nom de la pizzeria',
+produit.nom AS 'Nom du produit',
+stock.quantite AS 'Quantité',
+stock.conditionnement AS 'Conditionnement'
+FROM oc_pizza.stock
+JOIN pizzeria ON pizzeria.id_pizzeria = stock.pizzeria_id_pizzeria
+JOIN produit ON produit.id_produit = stock.produit_id_produit;
+
+-- Création d'une vue stock composant
+CREATE OR REPLACE VIEW stock_composants
+AS SELECT stock.pizzeria_id_pizzeria AS 'Numéro Pizzeria',
+pizzeria.nom AS 'Nom de la pizzeria',
+composant.nom AS 'Nom du composant',
+stock.quantite AS 'Quantité',
+stock.conditionnement AS 'Conditionnement'
+FROM oc_pizza.stock
+JOIN pizzeria ON pizzeria.id_pizzeria = stock.pizzeria_id_pizzeria
+JOIN composant ON composant.id_composant = stock.composant_id_composant;
+
+-- Requete pour afficher les pizzerias d'une ville
+SELECT * FROM liste_pizzerias WHERE Ville = 'Tours';
+-- Requete pour afficher les clients d'une pizzeria
+SELECT * FROM liste_clients WHERE `Pizzeria du client` = 'OC PIZZA Tours Grammont';
+-- Requete pour afficher les membres d'équipe d'une ville spécifique
+SELECT * FROM liste_equipe_ocpizza WHERE `Pizzeria du client` = 'OC PIZZA Nantes';
+-- Requete pour voir les commandes en cours
+SELECT * FROM liste_commandes
+WHERE ((NOT `Statut de la commande` = 'close')
+AND (NOT `Statut de la commande` = 'annulée'));
+-- Requete pour voir le détail d'une commande
+SELECT * FROM detail_commandes WHERE `Numéro de commande` = 12;
+-- Requete pour lister seulement les pizas
+SELECT * FROM menu_ocpizza WHERE `Catégorie` = 'pizza';
+-- Requete pour afficher une recette
+SELECT * FROM aide_memoire WHERE `Nom du produit` = 'Margherita';
+-- Requete pour afficher les quantités inférieures ou égales à 20 sur une Pizzeria
+SELECT * FROM stock_global
+WHERE `Quantité` <= 20
+AND `Nom de la pizzeria` = 'OC PIZZA Rennes';
+
+-- Requete simple mise à jour
+UPDATE adresse
+SET commentaire = NULL
+WHERE id_adresse = (
+SELECT adresse_id_adresse
+FROM utilisateur
+WHERE utilisateur.email = 'amselsophie@example.fr'
+);
+
+-- Requete simple avec clause seulement les clients
+SELECT civilite, nom, prenom, numero_telephone, email
+FROM oc_pizza.utilisateur
+WHERE role = 'client';
+
+-- Requete simple avec clauses sur un nom
+SELECT id_utilisateur,role, nom, prenom, numero_telephone
+FROM oc_pizza.utilisateur
+WHERE nom = 'Payet'
+AND role = 'client';
+
+-- Requete avec clauses et conditions
+SELECT * FROM oc_pizza.commande
+WHERE (NOT statut_commande = 'close')
+AND (methode_de_paiement = 'carte bancaire'
+OR (methode_de_paiement = 'paypal')
+AND (date >= '2021-04-30'));
